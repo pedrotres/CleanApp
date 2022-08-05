@@ -11,7 +11,7 @@ protocol AddAccount {
     func add(addAccountModel: AddAccountModel, completion: @escaping (Result<AccountModel, Error>) -> Void)
 }
 
-struct AddAccountModel: Model {
+public struct AddAccountModel: Model {
     let name: String
     let email: String
     let password: String
