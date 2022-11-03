@@ -50,23 +50,7 @@ final class AlamofireAdapterTests: XCTestCase {
     }
     
     func test_post_should_complete_with_error_when_request_completes_with_error() {
-        
-        let sut = makeSut()
-        
-        URLProtocolStub.simulate(data: nil, response: nil, error: makeError())
-        
-        let exp = expectation(description: "waiting")
-        
-        sut.post(to: makeUrl(), with: makeValidData()) { result in
-            switch result {
-            case .failure(let error):
-                XCTAssertEqual(error, .noConnectivity)
-            case .success:
-                XCTFail("expect error got \(result) instead")
-            }
-            exp.fulfill()
-        }
-        wait(for: [exp], timeout: 1)
+        expectResult(.failure(.noConnectivity), when: (data: nil, response: nil, error: makeError()))
     }
 }
 
@@ -85,6 +69,28 @@ extension AlamofireAdapterTests {
         let exp = expectation(description: "waiting")
         URLProtocolStub.observerRequest { request in
             action(request)
+            exp.fulfill()
+        }
+        wait(for: [exp], timeout: 1)
+    }
+    
+    func expectResult(_ expectResult: Result<Data, HttpError>, when stub: (data: Data?, response: HTTPURLResponse?, error: Error?)) {
+        let sut = makeSut()
+        
+        URLProtocolStub.simulate(data: stub.data, response: stub.response, error: stub.error)
+        
+        let exp = expectation(description: "waiting")
+        
+        sut.post(to: makeUrl(), with: makeValidData()) { receivedResult in
+            
+            switch (expectResult, receivedResult) {
+            case (.failure(let expectError), .failure(let receivedError)):
+                XCTAssertEqual(expectError, receivedError)
+            case (.success(let expectData), .success(let receivedData)):
+                XCTAssertEqual(expectData, receivedData)
+            default:
+                XCTFail("expect \(expectResult) got \(receivedResult) instead")
+            }
             exp.fulfill()
         }
         wait(for: [exp], timeout: 1)
